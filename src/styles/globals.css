@@ -5,3 +5,11 @@
 body {
     @apply bg-blue-950 text-slate-200;
 }
+
+*::-webkit-scrollbar {
+    display: none;
+}
+*{
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;
+}
