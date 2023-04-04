@@ -3,6 +3,25 @@ import Head from "next/head";
 import { LoadingSpinner } from "~/components/Loading";
 import { api } from "~/utils/api";
 import Image from 'next/image';
+import { PageLayout } from "~/components/Layout";
+import { PostView } from "~/components/PostView";
+import { generateSSGHelper } from "~/server/helpers/ssgHelper";
+
+const ProfileFeed = (props: {userId: string}) => {
+  const { data, isLoading } = api.posts.getPostsByUserId.useQuery({userId: props.userId})
+
+  if (isLoading) return <LoadingSpinner />;
+
+  if (!data || data.length === 0) return <div className="p-2 flex justify-center">User has not posts yet!</div>
+
+  return <div className="flex flex-col">
+    {
+      data.map((dataPost) =>
+        (<PostView key={dataPost.post.id} {...dataPost}/>)
+      )
+    }
+  </div>
+}
 
 const ProfilePage: NextPage<{username : string}> = ({username}) => {
 
@@ -35,24 +54,17 @@ const ProfilePage: NextPage<{username : string}> = ({username}) => {
         <div className="h-[48px]"></div>
         <div className="p-4 text-2xl font-bold">{`@${data.username ?? ""}`}</div>
         <div className="w-full border-b"></div>
+        <ProfileFeed userId={data.id} />
       </PageLayout>
     </>
   );
 };
 
-import { createProxySSGHelpers } from '@trpc/react-query/ssg';
-import { appRouter } from "~/server/api/root";
-import { prisma } from "~/server/db";
-import SuperJSON from "superjson";
-import { PageLayout } from "~/components/Layout";
+
 
 export const getStaticProps: GetStaticProps = async (context) => {
   
-  const ssg = createProxySSGHelpers({
-    router: appRouter,
-    ctx: { prisma, userId: null },
-    transformer: SuperJSON
-  });
+  const ssg = generateSSGHelper();
 
   const slug = context.params?.slug;
 
