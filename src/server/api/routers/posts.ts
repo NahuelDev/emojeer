@@ -1,13 +1,12 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
-import { createTRPCRouter, privateProcedure, publicProcedure } from "~/server/api/trpc";
-
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import { filterUserForClient } from "~/server/helpers/filterUsersForClient";
 import type { Post } from "@prisma/client";
+
+import { createTRPCRouter, privateProcedure, publicProcedure } from "~/server/api/trpc";
+import { filterUserForClient } from "~/server/helpers/filterUsersForClient";
 
 const errorMessage = "Only emojis are allowed 😊";
 
@@ -44,8 +43,6 @@ const ratelimit = new Ratelimit({
 
     prefix: "@upstash/ratelimit",
 });
-
-
 
 export const postsRouter = createTRPCRouter({
     getById: publicProcedure.input(z.object({
@@ -85,7 +82,6 @@ export const postsRouter = createTRPCRouter({
             })
         )
         .mutation(async ({ ctx, input }) => {
-
 
             const authorId = ctx.userId;
             const content = input.content;

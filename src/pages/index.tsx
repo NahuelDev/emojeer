@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import toast from 'react-hot-toast';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 
 import { type NextPage } from "next";
 import Image from "next/image";
 
 import { api } from "~/utils/api";
 import { LoadingSpinner } from "~/components/Loading";
-import { useState } from "react";
 import { PageLayout } from "~/components/Layout";
 import { PostView } from "~/components/PostView";
+import Popup from "reactjs-popup";
 
 const CreatePostWizard = () => {
   const { user } = useUser();
@@ -16,7 +19,7 @@ const CreatePostWizard = () => {
   const [input, setInput] = useState("");
 
   const ctx = api.useContext();
-
+  
   const { mutate, isLoading: isPosting } = api.posts.create.useMutation({
     onSuccess: () => {
       setInput("");
@@ -32,8 +35,18 @@ const CreatePostWizard = () => {
     }
   });
 
+  type handleEK = {
+    native: string
+  }
+
+  const handleEmojiKeyboard = ({ native }: handleEK) => {
+    setInput(prevState => {
+      return prevState + native
+    });
+  }
+
   if (!user) return null;
-  return <div className='flex gap-4 w-full'>
+  return <div className='flex gap-4 w-full relative'>
     <Image
       src={user.profileImageUrl}
       alt="Profile Image"
@@ -57,6 +70,12 @@ const CreatePostWizard = () => {
       onChange={(e) => setInput(e.target.value)}
       disabled={isPosting}
     />
+
+    {
+      <Popup arrow={false} position='bottom left' offsetX={-324} trigger={<button>⌨️</button>}>
+        <Picker className='bottom-0 left-0 absolute' data={data} onEmojiSelect={handleEmojiKeyboard} />
+      </Popup>
+    }
 
     {input !== "" && !isPosting && (<button
       onClick={() => mutate({ content: input })}
@@ -86,7 +105,6 @@ const Feed = () => {
 }
 
 const Home: NextPage = () => {
-
 
   const { isLoaded: userLoaded, isSignedIn } = useUser();
 
