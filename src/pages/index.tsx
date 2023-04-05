@@ -35,11 +35,11 @@ const CreatePostWizard = () => {
     }
   });
 
-  type handleEK = {
+  type propsEmojiKeyboard = {
     native: string
   }
 
-  const handleEmojiKeyboard = ({ native }: handleEK) => {
+  const handleEmojiKeyboard = ({ native }: propsEmojiKeyboard) => {
     setInput(prevState => {
       return prevState + native
     });
