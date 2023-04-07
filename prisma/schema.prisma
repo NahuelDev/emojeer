@@ -12,12 +12,23 @@ generator client {
 }
 
 model Post {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-
-  content String @db.VarChar(255)
-
-  authorId String
+  id         String      @id @default(cuid())
+  createdAt  DateTime    @default(now())
+  content    String      @db.VarChar(255)
+  authorId   String
+  karmaVotes PostKarma[]
 
   @@index([authorId])
+}
+
+model PostKarma {
+  id         String  @id @default(cuid())
+  postId     String
+  userId     String
+  isPositive Boolean
+
+  Post Post @relation(fields: [postId], references: [id])
+
+  @@index([postId])
+  @@index([userId])
 }
