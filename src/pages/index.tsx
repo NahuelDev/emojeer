@@ -32,7 +32,7 @@ const CreatePostWizard = () => {
       } else {
         toast.error(`The message couldn't be post`)
       }
-    }
+    },
   });
 
   type propsEmojiKeyboard = {
@@ -69,13 +69,10 @@ const CreatePostWizard = () => {
       }}
       onChange={(e) => setInput(e.target.value)}
       disabled={isPosting}
-    />
-
-    {
-      <Popup arrow={false} position='bottom left' offsetX={-324} trigger={<button>⌨️</button>}>
-        <Picker className='bottom-0 left-0 absolute' data={data} onEmojiSelect={handleEmojiKeyboard} />
-      </Popup>
-    }
+    />    
+    <Popup arrow={false} position='bottom left' offsetX={-324} trigger={<button>⌨️</button>}>
+      <Picker className='bottom-0 left-0 absolute' data={data} onEmojiSelect={handleEmojiKeyboard} />
+    </Popup>
 
     {input !== "" && !isPosting && (<button
       onClick={() => mutate({ content: input })}
@@ -90,7 +87,7 @@ const Feed = () => {
   const { data, isLoading: postsLoading } = api.posts.getAll.useQuery();
 
   if (postsLoading) return (<div className="flex justify-center items-center h-screen">
-    <LoadingSpinner />
+    <LoadingSpinner  />
   </div>);
 
   if (!data) return <div>Something went wrong!</div>

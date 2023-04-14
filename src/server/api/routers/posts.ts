@@ -11,6 +11,11 @@ import { prisma } from "~/server/db";
 
 const errorMessage = "Only emojis are allowed 😊";
 
+type userKarma = {
+    alreadyVoted: boolean,
+    isPositive: boolean
+}
+
 const calculateKarma = (postKarma: simpleKarmaType[]) => {
     return postKarma.length > 0
         ? postKarma.reduce((acc, curr) => {
@@ -19,7 +24,7 @@ const calculateKarma = (postKarma: simpleKarmaType[]) => {
         : 0
 }
 
-const addAuthorAndKarmaToDataPost = async (posts: Post[]) => {
+const addAuthorAndKarmaToDataPost = async (posts: Post[], userId: string | null) => {
 
     const users = (await clerkClient.users.getUserList({
         userId: posts.map(post => post.authorId),
@@ -36,6 +41,28 @@ const addAuthorAndKarmaToDataPost = async (posts: Post[]) => {
                 isPositive: true
             }
         });
+        let userKarma: userKarma;
+
+        if (userId) {
+            const userPostKarma = await prisma.postKarma.findMany({
+                where: {
+                    postId: post.id,
+                    userId
+                },
+                select: {
+                    isPositive: true
+                }
+            });
+
+            userKarma = !!userPostKarma && userPostKarma[0]?.isPositive !== undefined
+                ? { alreadyVoted: true, isPositive: userPostKarma[0].isPositive }
+                : { alreadyVoted: false, isPositive: false };
+        } else {
+            userKarma = {
+                alreadyVoted: false,
+                isPositive: false
+            }
+        }
 
         const totalKarma = calculateKarma(karmaPost);
 
@@ -50,6 +77,7 @@ const addAuthorAndKarmaToDataPost = async (posts: Post[]) => {
                 ...author,
                 username: author.username
             },
+            userKarma,
             totalKarma
         }
     }));
@@ -80,27 +108,37 @@ export const postsRouter = createTRPCRouter({
             }
         });
 
+        const userId = ctx.userId;
+
         if (!post) throw new TRPCError({ code: "NOT_FOUND" });
 
-        return (await addAuthorAndKarmaToDataPost([post]))[0]
+
+        return (await addAuthorAndKarmaToDataPost([post], userId))[0]
     }),
     getAll: publicProcedure.query(async ({ ctx }) => {
         const posts = await ctx.prisma.post.findMany({
             take: 100,
             orderBy: [{ createdAt: "desc" }]
         });
+        const userId = ctx.userId;
 
-        return (await addAuthorAndKarmaToDataPost(posts));
+        return (await addAuthorAndKarmaToDataPost(posts, userId));
     }),
     getPostsByUserId: publicProcedure.input(z.object({
         userId: z.string()
-    })).query(({ ctx, input }) => ctx.prisma.post.findMany({
-        where: {
-            authorId: input.userId
-        },
-        take: 100,
-        orderBy: [{ createdAt: "desc" }],
-    }).then(addAuthorAndKarmaToDataPost)),
+    })).query(async ({ ctx, input }) => {
+
+        const posts = await ctx.prisma.post.findMany({
+            where: {
+                authorId: input.userId
+            },
+            take: 100,
+            orderBy: [{ createdAt: "desc" }],
+        });
+        const userId = ctx.userId;
+
+        return await addAuthorAndKarmaToDataPost(posts, userId)
+    }),
     create: privateProcedure
         .input(
             z.object({
@@ -129,19 +167,19 @@ export const postsRouter = createTRPCRouter({
         .input(
             z.object({
                 postId: z.string(),
-                isPositiveVote: z.boolean(),
+                isPositive: z.boolean(),
                 oldKarma: z.object({
                     alreadyVoted: z.boolean(),
-                    isKarmaPositive: z.boolean()
+                    isPositive: z.boolean()
                 })
             })
         ).mutation(async ({ ctx, input }) => {
 
-            const { postId, isPositiveVote, oldKarma } = input;
+            const { postId, isPositive, oldKarma } = input;
             const { userId } = ctx;
 
             if (oldKarma.alreadyVoted) {
-                if (oldKarma.isKarmaPositive === isPositiveVote) {
+                if (oldKarma.isPositive === isPositive) {
 
                     await ctx.prisma.postKarma.deleteMany({
                         where: {
@@ -149,46 +187,39 @@ export const postsRouter = createTRPCRouter({
                             userId
                         }
                     });
+                    return {
+                        alreadyVoted: false,
+                        isPositive
+                    }
 
                 } else {
-                    isPositiveVote ?
-                        await ctx.prisma.postKarma.updateMany({
-                            where: {
-                                postId,
-                                userId
-                            },
-                            data: {
-                                isPositive: isPositiveVote
-                            }
-                        })
-                        :
-                        await ctx.prisma.postKarma.updateMany({
-                            where: {
-                                postId,
-                                userId
-                            },
-                            data: {
-                                isPositive: isPositiveVote
-                            }
-                        });
+                    await ctx.prisma.postKarma.updateMany({
+                        where: {
+                            postId,
+                            userId
+                        },
+                        data: {
+                            isPositive
+                        }
+                    });
+                    return {
+                        alreadyVoted: true,
+                        isPositive
+                    }
                 }
             } else {
-                isPositiveVote ?
-                    await ctx.prisma.postKarma.create({
-                        data: {
-                            userId,
-                            postId,
-                            isPositive: isPositiveVote
-                        }
-                    })
-                    :
-                    await ctx.prisma.postKarma.create({
-                        data: {
-                            userId,
-                            postId,
-                            isPositive: isPositiveVote
-                        }
-                    })
+                await ctx.prisma.postKarma.create({
+                    data: {
+                        userId,
+                        postId,
+                        isPositive
+                    }
+                })
+                return {
+                    alreadyVoted: true,
+                    isPositive
+                }
             }
+
         })
 });
