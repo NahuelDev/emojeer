@@ -1,6 +1,6 @@
 # Emojeer
 
-[Emojeer](https://emojer.nahuelclotet.com.ar/) is a web application where users can log in using their Google or Github account and publish posts that consist only of emojis. Users can also view profiles and explore other user's posts.
+[Emojeer](https://emojer.nahuelclotet.com.ar/) is a web application where users can log in using their Google or Github account and publish posts that consist only of emojis. Users can also view profiles, explore and like user's posts.
 
 ## Technologies
 
